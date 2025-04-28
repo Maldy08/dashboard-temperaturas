@@ -3,12 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <title>Dashboard de Temperaturas</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-  <h1>Temperaturas en Tiempo Real 🌡️</h1>
-  <canvas id="grafica" width="400" height="200"></canvas>
+<body class="bg-light">
+
+  <div class="container mt-4">
+    <h1 class="text-center mb-4">🌡️ Dashboard de Temperaturas en Tiempo Real</h1>
+
+    <div class="row text-center mb-4">
+      <div class="col-md-4">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Temperatura Máxima</h5>
+            <p id="maximo" class="display-6 text-danger">-- °C</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Temperatura Promedio</h5>
+            <p id="promedio" class="display-6 text-primary">-- °C</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Temperatura Mínima</h5>
+            <p id="minimo" class="display-6 text-success">-- °C</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <canvas id="grafica" height="100"></canvas>
+      </div>
+    </div>
+
+    <div id="alerta" class="alert alert-danger text-center fw-bold" style="display: none;">
+      🚨 ¡ALERTA! Temperatura superior a 35°C 🚨
+    </div>
+
+  </div>
 
   <script>
     const ctx = document.getElementById('grafica').getContext('2d');
@@ -17,8 +60,9 @@
       datasets: [{
         label: 'Temperatura (°C)',
         data: [],
-        borderColor: 'rgba(75, 192, 192, 1)',
-        tension: 0.1
+        borderColor: 'rgba(255, 99, 132, 1)',
+        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+        tension: 0.3
       }]
     };
 
@@ -41,8 +85,12 @@
     };
 
     const grafica = new Chart(ctx, config);
-
     const socket = io();
+
+    const alerta = document.getElementById('alerta');
+    const maximo = document.getElementById('maximo');
+    const promedio = document.getElementById('promedio');
+    const minimo = document.getElementById('minimo');
 
     socket.on('nueva-temperatura', (data) => {
       const hora = new Date(data.fecha).toLocaleTimeString();
@@ -55,7 +103,31 @@
       }
 
       grafica.update();
+
+      maximo.innerText = `${data.maximo} °C`;
+      promedio.innerText = `${data.promedio} °C`;
+      minimo.innerText = `${data.minimo} °C`;
+
+      if (data.temperatura > 35) {
+        alerta.style.display = 'block';
+        notificar("🚨 Alerta de Temperatura Alta", `Temperatura actual: ${data.temperatura} °C`);
+      } else {
+        alerta.style.display = 'none';
+      }
     });
+
+    function notificar(titulo, cuerpo) {
+      if (Notification.permission === "granted") {
+        new Notification(titulo, { body: cuerpo });
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+            new Notification(titulo, { body: cuerpo });
+          }
+        });
+      }
+    }
   </script>
+
 </body>
 </html>
