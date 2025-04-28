@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard de Temperaturas</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1>Temperaturas en Tiempo Real 🌡️</h1>
+  <canvas id="grafica" width="400" height="200"></canvas>
+
+  <script>
+    const ctx = document.getElementById('grafica').getContext('2d');
+    const datos = {
+      labels: [],
+      datasets: [{
+        label: 'Temperatura (°C)',
+        data: [],
+        borderColor: 'rgba(75, 192, 192, 1)',
+        tension: 0.1
+      }]
+    };
+
+    const config = {
+      type: 'line',
+      data: datos,
+      options: {
+        responsive: true,
+        scales: {
+          x: {
+            title: { display: true, text: 'Hora' }
+          },
+          y: {
+            min: 0,
+            max: 50,
+            title: { display: true, text: 'Temperatura °C' }
+          }
+        }
+      }
+    };
+
+    const grafica = new Chart(ctx, config);
+
+    const socket = io();
+
+    socket.on('nueva-temperatura', (data) => {
+      const hora = new Date(data.fecha).toLocaleTimeString();
+      datos.labels.push(hora);
+      datos.datasets[0].data.push(data.temperatura);
+
+      if (datos.labels.length > 20) {
+        datos.labels.shift();
+        datos.datasets[0].data.shift();
+      }
+
+      grafica.update();
+    });
+  </script>
+</body>
+</html>
